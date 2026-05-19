@@ -10,7 +10,7 @@ concurrency:
 permissions:
   pull-requests: write
   statuses: write
-  contents: read
+  contents: write  # need write to force-update refs/heads/2027/preview
 
 env:
   PROMPT_ID: 5e562ebf-fa8e-43f7-b0ec-b53aaa34490f
@@ -21,16 +21,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
+      # Force-update refs/heads/2027/preview to this PR's HEAD sha so the
+      # install command can pin to a stable, release-channel-flavored ref
+      # instead of a PR-derivative branch name like 'feat/extraction-filter'.
+      # Hypothesis: the per-PR ref triggers a "this is a dev branch" persona
+      # in the agent that surfaces as DNF on credential-blocked tasks.
+      - name: Move 2027/preview ref to this PR HEAD
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Try patch first (ref exists); fall back to create if 404.
+          if ! gh api -X PATCH "repos/${REPO}/git/refs/heads/2027/preview" \
+                 -f sha="$SHA" -F force=true >/dev/null 2>&1; then
+            gh api -X POST "repos/${REPO}/git/refs" \
+              -f ref="refs/heads/2027/preview" -f sha="$SHA" >/dev/null
+          fi
+          echo "2027/preview now points at ${SHA}"
+
       - name: Compute skillsInstall
         id: skills
         env:
-          REF: ${{ github.event.pull_request.head.ref }}
           REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
-          # `skills` CLI uses `git clone --depth 1 --branch <ref>`, which only
-          # accepts branch names and tags — not raw SHAs. Use the head ref.
-          echo "install=npx -y skills add ${REPO}#${REF}" >> "$GITHUB_OUTPUT"
+          # Pin to the static 2027/preview ref (we just moved it to PR HEAD).
+          # `skills` CLI uses `git clone --depth 1 --branch <ref>` which works
+          # with branch names; agent sees a stable name, not a PR-flavored one.
+          echo "install=npx -y skills add ${REPO}#2027/preview" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
         # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
