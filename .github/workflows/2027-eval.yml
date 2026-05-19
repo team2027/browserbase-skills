@@ -1,0 +1,47 @@
+name: 2027 eval
+on:
+  pull_request:
+    types: [labeled, synchronize, opened, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  statuses: write
+  contents: read
+
+env:
+  PROMPT_ID: 5e562ebf-fa8e-43f7-b0ec-b53aaa34490f
+
+jobs:
+  eval:
+    if: "contains(github.event.pull_request.labels.*.name, 'trigger: preview')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - name: Compute skillsInstall
+        id: skills
+        env:
+          REF: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+          # `skills` CLI uses `git clone --depth 1 --branch <ref>`, which only
+          # accepts branch names and tags — not raw SHAs. Use the head ref.
+          echo "install=npx -y skills add ${REPO}#${REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Run 2027 eval
+        # team2027/evals-action@v0.5.0 — SHA-pinned per GitHub's hardening guidance.
+        uses: team2027/evals-action@a6cff23bd32d13765bb9c5c117c63f917b4b8cbc
+        with:
+          api-key: ${{ secrets.EVALS_API_KEY }}
+          prompt-id: ${{ env.PROMPT_ID }}
+          # Dummy url-map: server requires non-empty urlMap even when
+          # template-vars is set. No-op rewrite of docs.browserbase.com.
+          url-map: |
+            { "docs.browserbase.com": "https://docs.browserbase.com" }
+          template-vars: |
+            { "skillsInstall": "${{ steps.skills.outputs.install }}" }
+          wait-timeout-minutes: 60
