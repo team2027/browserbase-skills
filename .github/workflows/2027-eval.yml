@@ -31,13 +31,12 @@ jobs:
           SHORT_SHA="${SHA:0:12}"
           ORG="${REPO%/*}"   # e.g. team2027
           NAME="${REPO#*/}"  # e.g. browserbase-skills
-          # EXPERIMENT: hit the skills-proxy worker DIRECTLY at *.2027.ax,
-          # bypassing URL_MAP. If install succeeds, the worker + 2027.ax are
-          # reachable from the sandbox and the failure path is URL_MAP not
-          # intercepting skills.browserbase.com (canary-env#88). If install
-          # still fails, the issue is the worker itself.
-          echo "install=npx -y skills add https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
-          echo "proxy_host=https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
+          # EXPERIMENT: drop the https:// prefix from url-map target so
+          # entrypoint.sh's `reverse_proxy https://$STAGING` produces a valid
+          # Caddyfile (avoids the canary-env#88 double-https bug).
+          # Agent sees the clean canonical URL; URL_MAP rewrites host-only.
+          echo "install=npx -y skills add https://skills.browserbase.com" >> "$GITHUB_OUTPUT"
+          echo "proxy_host=${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
         # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
