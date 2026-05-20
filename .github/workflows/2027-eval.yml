@@ -10,7 +10,7 @@ concurrency:
 permissions:
   pull-requests: write
   statuses: write
-  contents: write  # need write to force-update refs/heads/2027/preview
+  contents: read
 
 env:
   PROMPT_ID: 5e562ebf-fa8e-43f7-b0ec-b53aaa34490f
@@ -21,37 +21,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
-      # Force-update refs/heads/2027/preview to this PR's HEAD sha so the
-      # install command can pin to a stable, release-channel-flavored ref
-      # instead of a PR-derivative branch name like 'feat/extraction-filter'.
-      # Hypothesis: the per-PR ref triggers a "this is a dev branch" persona
-      # in the agent that surfaces as DNF on credential-blocked tasks.
-      - name: Move 2027/preview ref to this PR HEAD
+      - name: Compute skillsInstall + url-map proxy host
+        id: skills
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.event.pull_request.head.repo.full_name }}
           SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          # Try patch first (ref exists); fall back to create if 404.
-          if ! gh api -X PATCH "repos/${REPO}/git/refs/heads/2027/preview" \
-                 -f sha="$SHA" -F force=true >/dev/null 2>&1; then
-            gh api -X POST "repos/${REPO}/git/refs" \
-              -f ref="refs/heads/2027/preview" -f sha="$SHA" >/dev/null
-          fi
-          echo "2027/preview now points at ${SHA}"
-
-      - name: Compute skillsInstall
-        id: skills
-        env:
-          REPO: ${{ github.event.pull_request.head.repo.full_name }}
-        run: |
-          set -euo pipefail
-          # EXPERIMENT: drop the #<ref> suffix entirely to test the "ref name
-          # triggers dev mode" hypothesis. Agent gets fork main (= upstream
-          # main, clean skill content). Compare completion + interruption
-          # counts vs PR runs that had a ref.
-          echo "install=npx -y skills add ${REPO}" >> "$GITHUB_OUTPUT"
+          SHORT_SHA="${SHA:0:12}"
+          # The agent only sees a clean canonical-looking install URL.
+          # URL_MAP rewrites skills.browserbase.com → <sha>--browserbase.2027.ax
+          # where the skills-proxy worker reads the sha+provider from the
+          # subdomain and serves .well-known/skills/* from the PR commit.
+          # See https://github.com/2027/skills-proxy for the worker source.
+          echo "install=npx -y skills add https://skills.browserbase.com" >> "$GITHUB_OUTPUT"
+          echo "proxy_host=https://${SHORT_SHA}--browserbase.2027.ax" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
         # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
@@ -59,10 +42,8 @@ jobs:
         with:
           api-key: ${{ secrets.EVALS_API_KEY }}
           prompt-id: ${{ env.PROMPT_ID }}
-          # Dummy url-map: server requires non-empty urlMap even when
-          # template-vars is set. No-op rewrite of docs.browserbase.com.
           url-map: |
-            { "docs.browserbase.com": "https://docs.browserbase.com" }
+            { "skills.browserbase.com": "${{ steps.skills.outputs.proxy_host }}" }
           template-vars: |
             { "skillsInstall": "${{ steps.skills.outputs.install }}" }
           wait-timeout-minutes: 60
