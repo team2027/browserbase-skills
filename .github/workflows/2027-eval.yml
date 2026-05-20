@@ -31,18 +31,16 @@ jobs:
           SHORT_SHA="${SHA:0:12}"
           ORG="${REPO%/*}"   # e.g. team2027
           NAME="${REPO#*/}"  # e.g. browserbase-skills
-          # The agent only sees a clean canonical-looking install URL.
-          # URL_MAP rewrites skills.browserbase.com → <sha>--<org>--<repo>.2027.ax
-          # where the skills-proxy worker serves .well-known/skills/* directly
-          # from raw.githubusercontent.com/<org>/<repo>/<sha>/... — no static
-          # map, repo name must end with "skills" as the safety gate.
+          # Workaround for canary-env#88 (merged but not redeployed): point
+          # the agent directly at the .2027.ax worker URL and skip URL_MAP
+          # interception. Agent loses the canonical-URL veneer but the install
+          # actually succeeds, so we get real data on credential-ask behavior.
+          # When canary-env redeploys, swap install back to the canonical
+          # skills.browserbase.com URL and url-map this same proxy_host.
           # Worker source: https://github.com/team2027/skills-proxy
-          #
-          # NOTE: currently blocked on canary-env#88 — sandbox entrypoint.sh
-          # double-prefixes https:// in the Caddyfile, breaking URL_MAP for
-          # any value following the documented format.
-          echo "install=npx -y skills add https://skills.browserbase.com" >> "$GITHUB_OUTPUT"
-          echo "proxy_host=https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
+          PROXY="https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax"
+          echo "install=npx -y skills add ${PROXY}" >> "$GITHUB_OUTPUT"
+          echo "proxy_host=${PROXY}" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
         # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
@@ -50,8 +48,11 @@ jobs:
         with:
           api-key: ${{ secrets.EVALS_API_KEY }}
           prompt-id: ${{ env.PROMPT_ID }}
+          # Dummy entry to satisfy server's non-empty-urlMap validation;
+          # not used by the agent since the install URL is the proxy host
+          # itself. Drop and re-enable real mapping after canary-env redeploys.
           url-map: |
-            { "skills.browserbase.com": "${{ steps.skills.outputs.proxy_host }}" }
+            { "docs.browserbase.com": "https://docs.browserbase.com" }
           template-vars: |
             { "skillsInstall": "${{ steps.skills.outputs.install }}" }
           wait-timeout-minutes: 60
