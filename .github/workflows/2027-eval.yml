@@ -24,17 +24,21 @@ jobs:
       - name: Compute skillsInstall + url-map proxy host
         id: skills
         env:
-          SHA: ${{ github.event.pull_request.head.sha }}
+          SHA:  ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
           SHORT_SHA="${SHA:0:12}"
+          ORG="${REPO%/*}"   # e.g. team2027
+          NAME="${REPO#*/}"  # e.g. browserbase-skills
           # The agent only sees a clean canonical-looking install URL.
-          # URL_MAP rewrites skills.browserbase.com → <sha>--browserbase.2027.ax
-          # where the skills-proxy worker reads the sha+provider from the
-          # subdomain and serves .well-known/skills/* from the PR commit.
-          # See https://github.com/2027/skills-proxy for the worker source.
+          # URL_MAP rewrites skills.browserbase.com → <sha>--<org>--<repo>.2027.ax
+          # where the skills-proxy worker serves .well-known/skills/* directly
+          # from raw.githubusercontent.com/<org>/<repo>/<sha>/... — no static
+          # map, repo name must end with "skills" as the safety gate.
+          # Worker source: https://github.com/2027/skills-proxy
           echo "install=npx -y skills add https://skills.browserbase.com" >> "$GITHUB_OUTPUT"
-          echo "proxy_host=https://${SHORT_SHA}--browserbase--skills.2027.ax" >> "$GITHUB_OUTPUT"
+          echo "proxy_host=https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
         # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
