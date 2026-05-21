@@ -83,3 +83,4 @@ rm -rf .chrome-profile
 
 - [Stagehand Documentation](https://github.com/browserbase/stagehand)
 - [Claude Code Skills](https://support.claude.com/en/articles/12512176-what-are-skills)
+<!-- baseline -->
