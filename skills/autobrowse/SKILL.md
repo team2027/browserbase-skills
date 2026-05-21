@@ -280,3 +280,5 @@ Write the file `./autobrowse/reports/YYYY-MM-DD-HH-MM-<tasks>.md` with:
 - **Build on wins** — keep what worked, add to it
 - **Trust the trace** — the inner agent shows exactly what it saw and did
 - **Graduate to `~/.claude/skills/`** — the only file you write there is the final graduated `SKILL.md`
+
+<!-- ax-audit smoke marker -->
