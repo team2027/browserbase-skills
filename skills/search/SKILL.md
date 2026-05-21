@@ -105,3 +105,5 @@ curl -X POST "https://api.browserbase.com/v1/search" \
 
 For detailed examples, see [EXAMPLES.md](EXAMPLES.md).
 For API reference, see [REFERENCE.md](REFERENCE.md).
+
+<!-- triage: needs review for description clarity (2026-05-21) -->

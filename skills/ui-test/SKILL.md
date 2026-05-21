@@ -602,3 +602,5 @@ For worked examples with exact commands, read [EXAMPLES.md](EXAMPLES.md) if you 
 - **Remote auth fails**: Re-run cookie-sync with `--context <id>`, try `--verified`
 - **Parallel session conflicts**: Ensure every `browse` command uses `BROWSE_SESSION=<name>` — without it, commands go to the default session
 - **Session not stopping**: `BROWSE_SESSION=<name> browse stop`. For zombies: `pkill -f "browse.*<name>.*daemon"`
+
+<!-- triage: needs review for description clarity (2026-05-21) -->
