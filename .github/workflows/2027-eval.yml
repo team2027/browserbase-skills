@@ -40,8 +40,8 @@ jobs:
           echo "proxy_host=https://${SHORT_SHA}--${ORG}--${NAME}.2027.ax" >> "$GITHUB_OUTPUT"
 
       - name: Run 2027 eval
-        # team2027/evals-action@v0.6.0 — SHA-pinned per GitHub's hardening guidance.
-        uses: team2027/evals-action@f9c25786d4e14756afa82bca91fbe0a43cf73ef3
+        # team2027/evals-action @ main (post-PR #15 — blockquote mapping with → arrow). SHA-pinned per GitHub's hardening guidance.
+        uses: team2027/evals-action@4a6fba5bf4201a5f7d43cd443e82fa0e6d61bd2b
         with:
           api-key: ${{ secrets.EVALS_API_KEY }}
           prompt-id: ${{ env.PROMPT_ID }}
