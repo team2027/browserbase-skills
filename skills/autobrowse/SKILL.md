@@ -1,6 +1,6 @@
 ---
 name: autobrowse
-description: Self-improving browser automation via the auto-research loop. Iteratively runs a browsing task, reads the trace, and improves the navigation skill (strategy.md) until it reliably passes. Supports parallel runs across multiple tasks using sub-agents. Use when you want to build or improve browser automation skills for specific website tasks.
+description: Iterative browser automation that improves itself by reading traces. Runs a browsing task, analyzes what went wrong, and tunes the navigation strategy until the task passes reliably. Supports parallel runs across multiple tasks. Use when you want to build or refine browser automation for specific website tasks.
 license: See LICENSE.txt
 compatibility: "Requires Node.js 18+, browse CLI, and ANTHROPIC_API_KEY. Run from the autobrowse app directory."
 allowed-tools: Bash Read Write Edit Glob Grep Agent
