@@ -1,0 +1,23 @@
+# Per-repo skill-audit config.
+# Extends the bundled defaults shipped with @team2027/skill-audit.
+# Schema: see github.com/team2027/skill-audit src/types.ts
+
+# Severity overrides for shipped rules: "error" | "warn" | "info" | "off"
+overrides:
+  # Demote: license file is documentation, we accept it
+  HYGIENE-020:
+    severity: info
+
+# Additional org-specific rules
+rules:
+  - id: ORG-MJS-ONLY
+    severity: error
+    cluster: org
+    title: "All scripts must be .mjs (no .js, no .py, no .ts)"
+    check:
+      type: glob-not-exists
+      patterns:
+        - "scripts/*.js"
+        - "scripts/*.py"
+        - "scripts/*.ts"
+      relative-to: skill-dir
